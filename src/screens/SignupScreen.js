@@ -1,7 +1,8 @@
 // NEXUS Signup Screen
 // Create Account with Name, Email, Password, Confirm Password
+// Integrated with Redux Toolkit for state management
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -12,6 +13,8 @@ import {
     Platform,
     TouchableOpacity,
 } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { signupUser, clearError } from '../redux/authSlice';
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
 import BackButton from '../components/BackButton';
@@ -27,6 +30,9 @@ const isValidEmail = (email) => {
 };
 
 const SignupScreen = ({ navigation }) => {
+    const dispatch = useDispatch();
+    const { isLoading, error, isAuthenticated } = useSelector((state) => state.auth);
+
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -37,11 +43,32 @@ const SignupScreen = ({ navigation }) => {
     const [passwordError, setPasswordError] = useState(null);
     const [confirmError, setConfirmError] = useState(null);
     
-    const [errorMessage, setErrorMessage] = useState('');
-    const [successMessage, setSuccessMessage] = useState('');
     const [showError, setShowError] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
-    const [loading, setLoading] = useState(false);
+
+    // Navigate to Home when authenticated (auto-login after signup)
+    useEffect(() => {
+        if (isAuthenticated) {
+            setShowSuccess(true);
+            setTimeout(() => {
+                navigation.replace('Home');
+            }, 1000);
+        }
+    }, [isAuthenticated, navigation]);
+
+    // Show Redux error
+    useEffect(() => {
+        if (error) {
+            setShowError(true);
+        }
+    }, [error]);
+
+    // Clear error when component unmounts
+    useEffect(() => {
+        return () => {
+            dispatch(clearError());
+        };
+    }, [dispatch]);
 
     const validateName = () => {
         if (!name.trim()) {
@@ -94,6 +121,7 @@ const SignupScreen = ({ navigation }) => {
     const handleSignup = () => {
         setShowError(false);
         setShowSuccess(false);
+        dispatch(clearError());
 
         const isNameValid = validateName();
         const isEmailValid = validateEmail();
@@ -101,29 +129,7 @@ const SignupScreen = ({ navigation }) => {
         const isConfirmValid = validateConfirmPassword();
 
         if (isNameValid && isEmailValid && isPasswordValid && isConfirmValid) {
-            setLoading(true);
-            // Simulate signup delay
-            setTimeout(() => {
-                setLoading(false);
-                setSuccessMessage('Account created successfully!');
-                setShowSuccess(true);
-                // Navigate back to login after success
-                setTimeout(() => {
-                    navigation.navigate('Login');
-                }, 1500);
-            }, 1500);
-        } else {
-            // Show first error found
-            if (!isNameValid) {
-                setErrorMessage('Please enter your name');
-            } else if (!isEmailValid) {
-                setErrorMessage('Please enter a valid email');
-            } else if (!isPasswordValid) {
-                setErrorMessage('Password must be at least 6 characters');
-            } else {
-                setErrorMessage('Passwords do not match');
-            }
-            setShowError(true);
+            dispatch(signupUser({ name, email, password }));
         }
     };
 
@@ -154,12 +160,12 @@ const SignupScreen = ({ navigation }) => {
 
                     {/* Messages */}
                     <ErrorMessage
-                        message={errorMessage}
+                        message={error}
                         type="error"
-                        visible={showError}
+                        visible={showError && !!error}
                     />
                     <ErrorMessage
-                        message={successMessage}
+                        message="Account created successfully!"
                         type="success"
                         visible={showSuccess}
                     />
@@ -220,7 +226,7 @@ const SignupScreen = ({ navigation }) => {
                                 title="Sign Up"
                                 onPress={handleSignup}
                                 disabled={isButtonDisabled}
-                                loading={loading}
+                                loading={isLoading}
                             />
                         </View>
                     </View>

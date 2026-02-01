@@ -1,5 +1,6 @@
 // NEXUS Home Screen
-// Placeholder main app screen after successful login
+// Displays welcome message with user name and logout functionality
+// Integrated with Redux Toolkit for state management
 
 import React from 'react';
 import {
@@ -9,13 +10,19 @@ import {
     StatusBar,
     Image,
 } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { logoutUser } from '../redux/authSlice';
 import CustomButton from '../components/CustomButton';
 import Colors from '../constants/Colors';
 import Typography from '../constants/Typography';
 import Spacing from '../constants/Spacing';
 
 const HomeScreen = ({ navigation }) => {
-    const handleLogout = () => {
+    const dispatch = useDispatch();
+    const { user, isLoading } = useSelector((state) => state.auth);
+
+    const handleLogout = async () => {
+        await dispatch(logoutUser());
         navigation.reset({
             index: 0,
             routes: [{ name: 'Login' }],
@@ -39,13 +46,16 @@ const HomeScreen = ({ navigation }) => {
                 <View style={styles.textcontent}>
 
                 {/* Welcome Text */}
-                <Text style={styles.welcomeText}>Welcome Home</Text>
+                <Text style={styles.welcomeText}>
+                    Welcome{user?.name ? `, ${user.name}` : ' Home'}
+                </Text>
 
                 {/* Logout Button */}
                 <View style={styles.buttonContainer}>
                     <CustomButton
                         title="Log Out"
                         onPress={handleLogout}
+                        loading={isLoading}
                         />
                 </View>
                 </View>

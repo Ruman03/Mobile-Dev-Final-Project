@@ -1,7 +1,8 @@
 // NEXUS Login Screen
 // Email/Password inputs, social login, navigation links
+// Integrated with Redux Toolkit for state management
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -12,6 +13,8 @@ import {
     Platform,
     TouchableOpacity,
 } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { loginUser, clearError } from '../redux/authSlice';
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
 import SocialButton from '../components/SocialButton';
@@ -27,13 +30,35 @@ const isValidEmail = (email) => {
 };
 
 const LoginScreen = ({ navigation }) => {
+    const dispatch = useDispatch();
+    const { isLoading, error, isAuthenticated } = useSelector((state) => state.auth);
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [emailError, setEmailError] = useState(null);
     const [passwordError, setPasswordError] = useState(null);
-    const [errorMessage, setErrorMessage] = useState('');
     const [showError, setShowError] = useState(false);
-    const [loading, setLoading] = useState(false);
+
+    // Navigate to Home when authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigation.replace('Home');
+        }
+    }, [isAuthenticated, navigation]);
+
+    // Show Redux error
+    useEffect(() => {
+        if (error) {
+            setShowError(true);
+        }
+    }, [error]);
+
+    // Clear error when component unmounts
+    useEffect(() => {
+        return () => {
+            dispatch(clearError());
+        };
+    }, [dispatch]);
 
     const validateEmail = () => {
         if (!email) {
@@ -63,19 +88,13 @@ const LoginScreen = ({ navigation }) => {
 
     const handleLogin = () => {
         setShowError(false);
+        dispatch(clearError());
+        
         const isEmailValid = validateEmail();
         const isPasswordValid = validatePassword();
 
         if (isEmailValid && isPasswordValid) {
-            setLoading(true);
-            // Simulate login delay
-            setTimeout(() => {
-                setLoading(false);
-                navigation.replace('Home');
-            }, 1500);
-        } else {
-            setErrorMessage('Please fix the errors above');
-            setShowError(true);
+            dispatch(loginUser({ email, password }));
         }
     };
 
@@ -108,9 +127,9 @@ const LoginScreen = ({ navigation }) => {
 
                     {/* Error Message */}
                     <ErrorMessage
-                        message={errorMessage}
+                        message={error || ''}
                         type="error"
-                        visible={showError}
+                        visible={showError && !!error}
                     />
 
                     {/* Form */}
@@ -152,7 +171,7 @@ const LoginScreen = ({ navigation }) => {
                                 title="Log In"
                                 onPress={handleLogin}
                                 disabled={isButtonDisabled}
-                                loading={loading}
+                                loading={isLoading}
                             />
                         </View>
                     </View>
