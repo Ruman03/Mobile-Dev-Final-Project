@@ -1,196 +1,192 @@
-// Premium Login Screen with Gradient Header
-import React, { useState, useRef } from 'react';
+// NEXUS Login Screen
+// Email/Password inputs, social login, navigation links
+
+import React, { useState } from 'react';
 import {
     View,
     Text,
     StyleSheet,
+    StatusBar,
     ScrollView,
     KeyboardAvoidingView,
     Platform,
-    TouchableWithoutFeedback,
-    Keyboard,
     TouchableOpacity,
-    StatusBar,
-    Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
 import SocialButton from '../components/SocialButton';
-import SuccessMessage from '../components/SuccessMessage';
-import colors from '../styles/colors';
-import spacing from '../styles/spacing';
-import { validateEmail, validatePassword } from '../utils/validation';
+import ErrorMessage from '../components/ErrorMessage';
+import Colors from '../constants/Colors';
+import Typography from '../constants/Typography';
+import Spacing from '../constants/Spacing';
 
-const { width } = Dimensions.get('window');
+// Simple email validation
+const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+};
 
 const LoginScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [errors, setErrors] = useState({});
+    const [emailError, setEmailError] = useState(null);
+    const [passwordError, setPasswordError] = useState(null);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [showError, setShowError] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
 
-    const passwordRef = useRef(null);
-
-    const validateForm = () => {
-        const newErrors = {};
-
-        const emailValidation = validateEmail(email);
-        if (!emailValidation.isValid) {
-            newErrors.email = emailValidation.error;
+    const validateEmail = () => {
+        if (!email) {
+            setEmailError('Email is required');
+            return false;
         }
-
-        const passwordValidation = validatePassword(password);
-        if (!passwordValidation.isValid) {
-            newErrors.password = passwordValidation.error;
+        if (!isValidEmail(email)) {
+            setEmailError('Please enter a valid email address');
+            return false;
         }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        setEmailError(null);
+        return true;
     };
 
-    const isFormValid = () => {
-        return email.trim() !== '' && password.length >= 8;
+    const validatePassword = () => {
+        if (!password) {
+            setPasswordError('Password is required');
+            return false;
+        }
+        if (password.length < 6) {
+            setPasswordError('Password must be at least 6 characters');
+            return false;
+        }
+        setPasswordError(null);
+        return true;
     };
 
-    const handleLogin = async () => {
-        if (!validateForm()) return;
+    const handleLogin = () => {
+        setShowError(false);
+        const isEmailValid = validateEmail();
+        const isPasswordValid = validatePassword();
 
-        setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
-            setShowSuccess(true);
-        }, 1500);
+        if (isEmailValid && isPasswordValid) {
+            setLoading(true);
+            // Simulate login delay
+            setTimeout(() => {
+                setLoading(false);
+                navigation.replace('Home');
+            }, 1500);
+        } else {
+            setErrorMessage('Please fix the errors above');
+            setShowError(true);
+        }
     };
 
     const handleSocialLogin = (provider) => {
-        console.log(`Login with ${provider}`);
+        console.log(`[Social Login] ${provider} login initiated`);
     };
+
+    const isButtonDisabled = !email || !password;
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-
-            <SuccessMessage
-                message="Login successful! Welcome back!"
-                visible={showSuccess}
-                onHide={() => setShowSuccess(false)}
+            <StatusBar
+                barStyle="light-content"
+                backgroundColor={Colors.background.primary}
             />
-
-            {/* Gradient Header */}
-            <LinearGradient
-                colors={colors.gradientPrimary}
-                style={styles.header}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-            >
-                <View style={styles.headerDecor1} />
-                <View style={styles.headerDecor2} />
-                <View style={styles.headerDecor3} />
-
-                <View style={styles.logoContainer}>
-                    <View style={styles.logoCircle}>
-                        <View style={styles.shieldIcon}>
-                            <View style={styles.shieldTop} />
-                            <View style={styles.shieldBottom} />
-                        </View>
-                    </View>
-                </View>
-                <Text style={styles.title}>Welcome Back</Text>
-                <Text style={styles.subtitle}>Sign in to continue</Text>
-            </LinearGradient>
-
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.keyboardAvoid}
+                style={styles.keyboardView}
             >
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <ScrollView
-                        contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
-                    >
-                        {/* Form Card */}
-                        <View style={styles.formCard}>
-                            <CustomInput
-                                placeholder="Email Address"
-                                value={email}
-                                onChangeText={(text) => {
-                                    setEmail(text);
-                                    if (errors.email) setErrors({ ...errors, email: null });
-                                }}
-                                keyboardType="email-address"
-                                icon="mail"
-                                error={errors.email}
-                                returnKeyType="next"
-                                onSubmitEditing={() => passwordRef.current?.focus()}
-                            />
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {/* Heading */}
+                    <View style={styles.headingContainer}>
+                        <Text style={styles.heading}>Welcome Back</Text>
+                        <Text style={styles.subtitle}>Welcome to authentication.</Text>
+                    </View>
 
-                            <CustomInput
-                                placeholder="Password"
-                                value={password}
-                                onChangeText={(text) => {
-                                    setPassword(text);
-                                    if (errors.password) setErrors({ ...errors, password: null });
-                                }}
-                                secureTextEntry
-                                icon="lock"
-                                error={errors.password}
-                                inputRef={passwordRef}
-                                returnKeyType="done"
-                                onSubmitEditing={handleLogin}
-                            />
+                    {/* Error Message */}
+                    <ErrorMessage
+                        message={errorMessage}
+                        type="error"
+                        visible={showError}
+                    />
 
-                            <TouchableOpacity
-                                style={styles.forgotPassword}
-                                onPress={() => navigation.navigate('ForgotPassword')}
-                            >
-                                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                            </TouchableOpacity>
+                    {/* Form */}
+                    <View style={styles.form}>
+                        <CustomInput
+                            label="Email"
+                            placeholder="email@gmail.com"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            error={emailError}
+                            onBlur={validateEmail}
+                        />
 
+                        <View style={styles.inputSpacing} />
+
+                        <CustomInput
+                            label="Password"
+                            placeholder="Password"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry
+                            showToggle
+                            error={passwordError}
+                            onBlur={validatePassword}
+                        />
+
+                        {/* Forgot Password Link */}
+                        <TouchableOpacity
+                            style={styles.forgotPassword}
+                            onPress={() => navigation.navigate('ResetPassword')}
+                        >
+                            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                        </TouchableOpacity>
+
+                        {/* Login Button */}
+                        <View style={styles.buttonContainer}>
                             <CustomButton
-                                title="Sign In"
+                                title="Log In"
                                 onPress={handleLogin}
+                                disabled={isButtonDisabled}
                                 loading={loading}
-                                disabled={!isFormValid()}
-                                style={styles.loginButton}
                             />
-
-                            {/* Divider */}
-                            <View style={styles.divider}>
-                                <View style={styles.dividerLine} />
-                                <View style={styles.dividerTextContainer}>
-                                    <Text style={styles.dividerText}>or continue with</Text>
-                                </View>
-                                <View style={styles.dividerLine} />
-                            </View>
-
-                            {/* Social Login */}
-                            <View style={styles.socialContainer}>
-                                <SocialButton
-                                    provider="google"
-                                    onPress={() => handleSocialLogin('google')}
-                                    style={styles.socialButton}
-                                />
-                                <SocialButton
-                                    provider="facebook"
-                                    onPress={() => handleSocialLogin('facebook')}
-                                    style={styles.socialButton}
-                                />
-                            </View>
                         </View>
+                    </View>
 
-                        {/* Sign Up Link */}
-                        <View style={styles.signupContainer}>
-                            <Text style={styles.signupText}>Don't have an account? </Text>
-                            <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-                                <Text style={styles.signupLink}>Sign Up</Text>
-                            </TouchableOpacity>
+                    {/* Divider */}
+                    <View style={styles.dividerContainer}>
+                        <View style={styles.dividerLine} />
+                        <View style={styles.dividerTextContainer}>
+                            <Text style={styles.dividerText}>or continue with</Text>
                         </View>
-                    </ScrollView>
-                </TouchableWithoutFeedback>
+                        <View style={styles.dividerLine} />
+                    </View>
+
+                    {/* Social Buttons */}
+                    <View style={styles.socialContainer}>
+                        <SocialButton
+                            type="google"
+                            onPress={() => handleSocialLogin('Google')}
+                        />
+                        <View style={styles.socialSpacing} />
+                        <SocialButton
+                            type="facebook"
+                            onPress={() => handleSocialLogin('Facebook')}
+                        />
+                    </View>
+
+                    {/* Sign Up Link */}
+                    <View style={styles.signupContainer}>
+                        <Text style={styles.signupText}>Don't have an account? </Text>
+                        <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+                            <Text style={styles.signupLink}>Sign Up</Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
             </KeyboardAvoidingView>
         </View>
     );
@@ -199,159 +195,78 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.backgroundSecondary,
+        backgroundColor: Colors.background.primary,
     },
-    header: {
-        paddingTop: 60,
-        paddingBottom: 50,
-        paddingHorizontal: spacing.screenPaddingHorizontal,
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
-        alignItems: 'center',
-        overflow: 'hidden',
-    },
-    headerDecor1: {
-        position: 'absolute',
-        top: -50,
-        right: -50,
-        width: 150,
-        height: 150,
-        borderRadius: 75,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    },
-    headerDecor2: {
-        position: 'absolute',
-        bottom: -30,
-        left: -30,
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    },
-    headerDecor3: {
-        position: 'absolute',
-        top: 50,
-        left: 50,
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    },
-    logoContainer: {
-        marginBottom: spacing.lg,
-    },
-    logoCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-    },
-    shieldIcon: {
-        width: 36,
-        height: 44,
-        alignItems: 'center',
-    },
-    shieldTop: {
-        width: 36,
-        height: 26,
-        backgroundColor: colors.textWhite,
-        borderTopLeftRadius: 6,
-        borderTopRightRadius: 6,
-    },
-    shieldBottom: {
-        width: 0,
-        height: 0,
-        borderLeftWidth: 18,
-        borderRightWidth: 18,
-        borderTopWidth: 18,
-        borderLeftColor: 'transparent',
-        borderRightColor: 'transparent',
-        borderTopColor: colors.textWhite,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: colors.textWhite,
-        marginBottom: spacing.xs,
-    },
-    subtitle: {
-        fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.8)',
-        fontWeight: '400',
-    },
-    keyboardAvoid: {
+    keyboardView: {
         flex: 1,
-        marginTop: -25,
     },
     scrollContent: {
         flexGrow: 1,
-        paddingHorizontal: spacing.screenPaddingHorizontal,
+        paddingHorizontal: Spacing.screen.paddingH,
+        paddingTop: Spacing.screen.paddingTop,
     },
-    formCard: {
-        backgroundColor: colors.background,
-        borderRadius: spacing.borderRadius.xl,
-        padding: spacing.xl,
-        shadowColor: colors.shadowDark,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 8,
+    headingContainer: {
+        marginBottom: Spacing.xl,
+    },
+    heading: {
+        ...Typography.heading.screen,
+    },
+    subtitle: {
+        ...Typography.subtitle,
+        marginTop: Spacing.sm,
+    },
+    form: {
+        marginTop: Spacing.sm,
+    },
+    inputSpacing: {
+        height: Spacing.md,
     },
     forgotPassword: {
         alignSelf: 'flex-end',
-        marginTop: -spacing.sm,
-        marginBottom: spacing.lg,
+        marginTop: 10,
     },
     forgotPasswordText: {
-        fontSize: 14,
-        color: colors.primary,
-        fontWeight: '600',
+        ...Typography.link,
     },
-    loginButton: {
-        marginTop: spacing.sm,
+    buttonContainer: {
+        marginTop: Spacing.lg,
     },
-    divider: {
+    dividerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: spacing.xl,
+        marginTop: Spacing.lg,
     },
     dividerLine: {
         flex: 1,
         height: 1,
-        backgroundColor: colors.border,
+        backgroundColor: Colors.social.divider,
     },
     dividerTextContainer: {
-        paddingHorizontal: spacing.md,
+        paddingHorizontal: Spacing.md,
+        backgroundColor: Colors.background.primary,
     },
     dividerText: {
-        fontSize: 13,
-        color: colors.textSecondary,
-        fontWeight: '500',
+        ...Typography.divider,
     },
     socialContainer: {
-        gap: spacing.md,
+        flexDirection: 'row',
+        marginTop: Spacing.md,
     },
-    socialButton: {
-        marginBottom: 0,
+    socialSpacing: {
+        width: 12,
     },
     signupContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        alignItems: 'center',
-        paddingVertical: spacing.xxl,
+        marginTop: Spacing.lg,
+        paddingBottom: Spacing.xl,
     },
     signupText: {
-        fontSize: 15,
-        color: colors.textSecondary,
+        ...Typography.link,
+        color: Colors.text.secondary,
     },
     signupLink: {
-        fontSize: 15,
-        color: colors.primary,
-        fontWeight: '700',
+        ...Typography.linkInline,
     },
 });
 

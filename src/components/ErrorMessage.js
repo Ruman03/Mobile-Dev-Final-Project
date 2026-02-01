@@ -1,50 +1,93 @@
-// Error Message Component (No External Icons)
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import colors from '../styles/colors';
-import spacing from '../styles/spacing';
+// NEXUS ErrorMessage Component
+// Reusable for both error and success message banners
 
-const ErrorMessage = ({ message, style }) => {
-    if (!message) return null;
+import React, { useEffect, useRef } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    Animated,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import Colors from '../constants/Colors';
+import Typography from '../constants/Typography';
+import Spacing from '../constants/Spacing';
+
+const ErrorMessage = ({ message, type = 'error', visible = false }) => {
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(-8)).current;
+
+    useEffect(() => {
+        if (visible) {
+            Animated.parallel([
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 250,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(slideAnim, {
+                    toValue: 0,
+                    duration: 250,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+        } else {
+            Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [visible]);
+
+    if (!visible && fadeAnim._value === 0) {
+        return null;
+    }
+
+    const isError = type === 'error';
+    const backgroundColor = isError ? Colors.error.background : Colors.success.background;
+    const textColor = isError ? Colors.error.text : Colors.success.text;
+    const iconName = isError ? 'warning' : 'information-circle';
 
     return (
-        <View style={[styles.container, style]}>
-            <View style={styles.iconContainer}>
-                <Text style={styles.iconText}>!</Text>
-            </View>
-            <Text style={styles.text}>{message}</Text>
-        </View>
+        <Animated.View
+            style={[
+                styles.container,
+                { backgroundColor },
+                {
+                    opacity: fadeAnim,
+                    transform: [{ translateY: slideAnim }],
+                },
+            ]}
+        >
+            <Icon
+                name={iconName}
+                size={16}
+                color={textColor}
+                style={styles.icon}
+            />
+            <Text style={[styles.text, { color: textColor }]}>
+                {message}
+            </Text>
+        </Animated.View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
+        width: '100%',
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.errorLight,
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        borderRadius: spacing.borderRadius.md,
-        gap: spacing.sm,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        borderRadius: Spacing.radius.message,
     },
-    iconContainer: {
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-        backgroundColor: colors.error,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    iconText: {
-        color: colors.textWhite,
-        fontSize: 11,
-        fontWeight: '700',
+    icon: {
+        marginRight: Spacing.sm,
     },
     text: {
-        fontSize: 13,
-        color: colors.errorDark,
+        ...Typography.message,
         flex: 1,
-        fontWeight: '500',
     },
 });
 

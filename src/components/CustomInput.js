@@ -1,188 +1,129 @@
-// Fixed Custom Input Component - Proper Label Spacing
-import React, { useState, useRef, useEffect } from 'react';
+// NEXUS CustomInput Component
+// Supports: default, focused, filled, error states with password toggle
+
+import React, { useState } from 'react';
 import {
     View,
     TextInput,
     Text,
     StyleSheet,
-    Animated,
     TouchableOpacity,
 } from 'react-native';
-import colors from '../styles/colors';
-import spacing from '../styles/spacing';
+import Icon from 'react-native-vector-icons/Ionicons';
+import Colors from '../constants/Colors';
+import Typography from '../constants/Typography';
+import Spacing from '../constants/Spacing';
 
 const CustomInput = ({
-    placeholder = '',
+    label,
+    placeholder,
     value = '',
     onChangeText,
     secureTextEntry = false,
-    keyboardType = 'default',
-    icon = null,
+    showToggle = false,
     error = null,
-    editable = true,
+    keyboardType = 'default',
+    onBlur = null,
     autoCapitalize = 'none',
-    maxLength,
-    returnKeyType = 'next',
-    onSubmitEditing,
-    inputRef,
 }) => {
     const [isFocused, setIsFocused] = useState(false);
-    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-    const labelPosition = useRef(new Animated.Value(value ? 1 : 0)).current;
+    const [isSecureVisible, setIsSecureVisible] = useState(false);
 
-    const isActive = isFocused || value;
+    // Determine visual state
+    const hasError = error !== null && error !== undefined;
 
-    useEffect(() => {
-        Animated.timing(labelPosition, {
-            toValue: isFocused || value ? 1 : 0,
-            duration: 200,
-            useNativeDriver: false,
-        }).start();
-    }, [isFocused, value]);
-
-    const labelStyle = {
-        position: 'absolute',
-        left: icon ? 52 : 16,
-        top: labelPosition.interpolate({
-            inputRange: [0, 1],
-            outputRange: [16, 6],
-        }),
-        fontSize: labelPosition.interpolate({
-            inputRange: [0, 1],
-            outputRange: [16, 11],
-        }),
-        color: error ? colors.error : isFocused ? colors.primary : colors.textSecondary,
-        backgroundColor: colors.background,
-        paddingHorizontal: 4,
-    };
-
-    const handleClear = () => {
-        onChangeText && onChangeText('');
-    };
-
-    const togglePasswordVisibility = () => {
-        setIsPasswordVisible(!isPasswordVisible);
-    };
-
+    // Get border color based on state
     const getBorderColor = () => {
-        if (error) return colors.error;
-        if (isFocused) return colors.primary;
-        return colors.border;
+        if (hasError) return Colors.border.error;
+        if (isFocused) return Colors.border.focus;
+        return Colors.border.default;
     };
 
-    // Icon components using simple shapes
-    const renderIcon = () => {
-        if (!icon) return null;
+    // Get border width based on state
+    const getBorderWidth = () => {
+        if (hasError) return 1.5;
+        if (isFocused) return 1.5;
+        return 1;
+    };
 
-        const iconColor = error ? colors.error : isFocused ? colors.primary : colors.textLight;
+    // Get label color based on state
+    const getLabelColor = () => {
+        if (hasError) return Colors.error.text;
+        if (isFocused) return Colors.accent.primary;
+        return Colors.text.secondary;
+    };
 
-        switch (icon) {
-            case 'mail':
-                return (
-                    <View style={styles.iconShape}>
-                        <View style={[styles.mailEnvelope, { borderColor: iconColor }]}>
-                            <View style={[styles.mailFlap, { borderTopColor: iconColor }]} />
-                        </View>
-                    </View>
-                );
-            case 'lock':
-                return (
-                    <View style={styles.iconShape}>
-                        <View style={[styles.lockBody, { backgroundColor: iconColor }]} />
-                        <View style={[styles.lockShackle, { borderColor: iconColor }]} />
-                    </View>
-                );
-            case 'user':
-                return (
-                    <View style={styles.iconShape}>
-                        <View style={[styles.userHead, { backgroundColor: iconColor }]} />
-                        <View style={[styles.userBody, { backgroundColor: iconColor }]} />
-                    </View>
-                );
-            case 'phone':
-                return (
-                    <View style={styles.iconShape}>
-                        <View style={[styles.phoneBody, { borderColor: iconColor }]}>
-                            <View style={[styles.phoneScreen, { backgroundColor: iconColor }]} />
-                        </View>
-                    </View>
-                );
-            case 'key':
-                return (
-                    <View style={styles.iconShape}>
-                        <View style={[styles.keyCircle, { borderColor: iconColor }]} />
-                        <View style={[styles.keyBar, { backgroundColor: iconColor }]} />
-                    </View>
-                );
-            default:
-                return null;
+    const handleFocus = () => {
+        setIsFocused(true);
+    };
+
+    const handleBlur = () => {
+        setIsFocused(false);
+        if (onBlur) {
+            onBlur();
         }
+    };
+
+    const toggleSecureEntry = () => {
+        setIsSecureVisible(!isSecureVisible);
     };
 
     return (
         <View style={styles.container}>
+            {/* Label */}
+            <Text style={[styles.label, { color: getLabelColor() }]}>
+                {label}
+            </Text>
+
+            {/* Input Container */}
             <View
                 style={[
                     styles.inputContainer,
-                    { borderColor: getBorderColor() },
-                    isFocused && styles.inputContainerFocused,
-                    !editable && styles.disabledContainer,
+                    {
+                        borderColor: getBorderColor(),
+                        borderWidth: getBorderWidth(),
+                    },
                 ]}
             >
-                {icon && <View style={styles.iconContainer}>{renderIcon()}</View>}
-
-                <Animated.Text style={labelStyle}>{placeholder}</Animated.Text>
-
                 <TextInput
-                    ref={inputRef}
-                    style={[
-                        styles.input,
-                        icon && styles.inputWithIcon,
-                        (secureTextEntry || (value && editable)) && styles.inputWithRightIcon,
-                        isActive && styles.inputActive,
-                    ]}
+                    style={styles.input}
                     value={value}
                     onChangeText={onChangeText}
-                    secureTextEntry={secureTextEntry && !isPasswordVisible}
+                    placeholder={placeholder}
+                    placeholderTextColor={Colors.text.placeholder}
+                    secureTextEntry={secureTextEntry && !isSecureVisible}
                     keyboardType={keyboardType}
-                    editable={editable}
                     autoCapitalize={autoCapitalize}
-                    maxLength={maxLength}
-                    returnKeyType={returnKeyType}
-                    onSubmitEditing={onSubmitEditing}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    placeholderTextColor="transparent"
-                    selectionColor={colors.primary}
+                    autoCorrect={false}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
                 />
 
-                <View style={styles.rightIconsContainer}>
-                    {value && editable && !secureTextEntry && (
-                        <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
-                            <View style={styles.clearIcon}>
-                                <View style={styles.clearLine1} />
-                                <View style={styles.clearLine2} />
-                            </View>
-                        </TouchableOpacity>
-                    )}
-
-                    {secureTextEntry && (
-                        <TouchableOpacity onPress={togglePasswordVisibility} style={styles.visibilityButton}>
-                            <View style={styles.eyeIcon}>
-                                <View style={[styles.eyeOuter, { borderColor: colors.textLight }]} />
-                                <View style={[styles.eyePupil, { backgroundColor: colors.textLight }]} />
-                                {!isPasswordVisible && <View style={styles.eyeSlash} />}
-                            </View>
-                        </TouchableOpacity>
-                    )}
-                </View>
+                {/* Eye Toggle for Password */}
+                {showToggle && (
+                    <TouchableOpacity
+                        style={styles.toggleButton}
+                        onPress={toggleSecureEntry}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                        <Icon
+                            name={isSecureVisible ? 'eye-off' : 'eye'}
+                            size={Spacing.icon.medium}
+                            color={Colors.text.placeholder}
+                        />
+                    </TouchableOpacity>
+                )}
             </View>
 
-            {error && (
+            {/* Error Message */}
+            {hasError && (
                 <View style={styles.errorContainer}>
-                    <View style={styles.errorIcon}>
-                        <Text style={styles.errorIconText}>!</Text>
-                    </View>
+                    <Icon
+                        name="warning"
+                        size={12}
+                        color={Colors.error.text}
+                        style={styles.errorIcon}
+                    />
                     <Text style={styles.errorText}>{error}</Text>
                 </View>
             )}
@@ -192,222 +133,40 @@ const CustomInput = ({
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: spacing.inputSpacing,
+        width: '100%',
+    },
+    label: {
+        ...Typography.label,
+        marginBottom: Spacing.sm,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        height: spacing.inputHeight,
-        borderWidth: 1.5,
-        borderRadius: spacing.borderRadius.md,
-        backgroundColor: colors.background,
-        position: 'relative',
-    },
-    inputContainerFocused: {
-        borderWidth: 2,
-    },
-    disabledContainer: {
-        backgroundColor: colors.backgroundSecondary,
-        opacity: 0.7,
-    },
-    iconContainer: {
-        paddingLeft: spacing.lg,
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: 44,
-    },
-    iconShape: {
-        width: 22,
-        height: 22,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    // Mail icon
-    mailEnvelope: {
-        width: 18,
-        height: 14,
-        borderWidth: 1.5,
-        borderRadius: 2,
-    },
-    mailFlap: {
-        position: 'absolute',
-        top: -1,
-        left: 2,
-        width: 0,
-        height: 0,
-        borderLeftWidth: 6,
-        borderRightWidth: 6,
-        borderTopWidth: 6,
-        borderLeftColor: 'transparent',
-        borderRightColor: 'transparent',
-    },
-    // Lock icon
-    lockBody: {
-        width: 14,
-        height: 10,
-        borderRadius: 2,
-        marginTop: 6,
-    },
-    lockShackle: {
-        position: 'absolute',
-        top: 0,
-        width: 10,
-        height: 8,
-        borderWidth: 2,
-        borderBottomWidth: 0,
-        borderTopLeftRadius: 6,
-        borderTopRightRadius: 6,
-    },
-    // User icon
-    userHead: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-    },
-    userBody: {
-        width: 14,
-        height: 7,
-        borderTopLeftRadius: 7,
-        borderTopRightRadius: 7,
-        marginTop: 2,
-    },
-    // Phone icon
-    phoneBody: {
-        width: 12,
-        height: 18,
-        borderWidth: 1.5,
-        borderRadius: 3,
-        alignItems: 'center',
-    },
-    phoneScreen: {
-        width: 8,
-        height: 12,
-        borderRadius: 1,
-        marginTop: 1,
-    },
-    // Key icon
-    keyCircle: {
-        width: 9,
-        height: 9,
-        borderRadius: 5,
-        borderWidth: 2,
-        position: 'absolute',
-        left: 0,
-        top: 2,
-    },
-    keyBar: {
-        width: 12,
-        height: 2,
-        position: 'absolute',
-        right: 0,
-        top: 6,
-        borderRadius: 1,
+        height: Spacing.inputHeight,
+        backgroundColor: Colors.background.card,
+        borderRadius: Spacing.radius.input,
+        paddingHorizontal: Spacing.md,
     },
     input: {
         flex: 1,
+        ...Typography.input,
         height: '100%',
-        paddingHorizontal: spacing.lg,
-        paddingTop: 20,
-        paddingBottom: 6,
-        fontSize: 16,
-        color: colors.textPrimary,
-        fontWeight: '400',
+        padding: 0,
     },
-    inputWithIcon: {
-        paddingLeft: spacing.sm,
-    },
-    inputWithRightIcon: {
-        paddingRight: 50,
-    },
-    inputActive: {
-        paddingTop: 22,
-        paddingBottom: 4,
-    },
-    rightIconsContainer: {
-        position: 'absolute',
-        right: spacing.md,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.sm,
-    },
-    clearButton: {
-        padding: spacing.xs,
-    },
-    clearIcon: {
-        width: 18,
-        height: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    clearLine1: {
-        position: 'absolute',
-        width: 12,
-        height: 2,
-        backgroundColor: colors.textLight,
-        borderRadius: 1,
-        transform: [{ rotate: '45deg' }],
-    },
-    clearLine2: {
-        position: 'absolute',
-        width: 12,
-        height: 2,
-        backgroundColor: colors.textLight,
-        borderRadius: 1,
-        transform: [{ rotate: '-45deg' }],
-    },
-    visibilityButton: {
-        padding: spacing.xs,
-    },
-    eyeIcon: {
-        width: 22,
-        height: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    eyeOuter: {
-        width: 18,
-        height: 12,
-        borderWidth: 1.5,
-        borderRadius: 8,
-    },
-    eyePupil: {
-        position: 'absolute',
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-    },
-    eyeSlash: {
-        position: 'absolute',
-        width: 2,
-        height: 20,
-        backgroundColor: colors.textLight,
-        borderRadius: 1,
-        transform: [{ rotate: '45deg' }],
+    toggleButton: {
+        padding: Spacing.xs,
+        marginLeft: Spacing.sm,
     },
     errorContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: spacing.xs,
-        paddingHorizontal: spacing.sm,
-        gap: spacing.xs,
+        marginTop: 6,
     },
     errorIcon: {
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-        backgroundColor: colors.error,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    errorIconText: {
-        color: colors.textWhite,
-        fontSize: 10,
-        fontWeight: '700',
+        marginRight: 4,
     },
     errorText: {
-        fontSize: 12,
-        color: colors.error,
-        fontWeight: '500',
+        ...Typography.error,
     },
 });
 
